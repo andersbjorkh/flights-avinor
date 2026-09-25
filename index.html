@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Oslo Airport Arrivals</title>
+<meta name="description" content="Arrivals at Oslo Airport Gardermoen for the next 24 hours. Flight data from Avinor.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛬</text></svg>">
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: light-dark(#f2f4f7, #0d1117);
+    --card: light-dark(#ffffff, #161b22);
+    --text: light-dark(#111827, #e6edf3);
+    --muted: light-dark(#667085, #8b949e);
+    --line: light-dark(#e4e7ec, #262c36);
+    --head: light-dark(#f8fafc, #1c222b);
+    --accent: light-dark(#1f6feb, #58a6ff);
+    --ok: light-dark(#067647, #3fb950);
+    --warn: light-dark(#b54708, #f0b429);
+    --bad: light-dark(#b42318, #ff7b72);
+    --tag: light-dark(#eef2f6, #222a35);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    padding: 24px 16px 40px;
+  }
+  main { max-width: 880px; margin: 0 auto; }
+  header.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+  h1 { margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -.01em; }
+  .sub { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
+  .meta { color: var(--muted); font-size: 13px; text-align: right; font-variant-numeric: tabular-nums; }
+  .meta a { color: inherit; }
+  .stale { color: var(--warn); font-weight: 600; }
+  input[type=search] {
+    width: 100%; font: inherit; color: inherit; background: var(--card);
+    border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin-bottom: 12px;
+  }
+  input[type=search]:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+  .board { background: var(--card); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+  .row {
+    display: grid; align-items: center; gap: 12px; padding: 10px 16px;
+    grid-template-columns: 56px 140px 84px minmax(0, 1fr) minmax(0, 1.1fr) 44px;
+    border-top: 1px solid var(--line);
+  }
+  .row.head {
+    border-top: 0; background: var(--head); color: var(--muted);
+    font-size: 12px; text-transform: uppercase; letter-spacing: .05em; padding-block: 8px;
+  }
+  .day {
+    padding: 8px 16px; background: var(--head); border-top: 1px solid var(--line);
+    font-size: 13px; font-weight: 650; color: var(--muted);
+  }
+  .time { font-size: 17px; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .time.moved { text-decoration: line-through; color: var(--muted); font-weight: 400; }
+  .status { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .status.landed { color: var(--ok); }
+  .status.delayed { color: var(--warn); }
+  .status.cancelled { color: var(--bad); }
+  .flight { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .airline, .via { color: var(--muted); font-size: 13px; }
+  .from { font-weight: 600; }
+  .ellip { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .belt { text-align: center; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .tag {
+    display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 4px;
+    background: var(--tag); color: var(--muted); font-size: 11px; font-weight: 500; vertical-align: 1px;
+  }
+  .c-flight .airline { display: none; }
+  .row.done { opacity: .55; }
+  .row.cancelled .from, .row.cancelled .flight { text-decoration: line-through; }
+  .empty, .error { padding: 32px 16px; text-align: center; color: var(--muted); margin: 0; }
+  .error { color: var(--bad); }
+  footer { margin-top: 12px; color: var(--muted); font-size: 12px; }
+  footer a { color: inherit; }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+
+  /* Phones: two-line rows. */
+  @media (max-width: 640px) {
+    body { padding-top: 16px; }
+    .row.head { display: none; }
+    .row {
+      grid-template-columns: 52px minmax(0, 1fr) auto;
+      grid-template-areas: "time from status" "time flight belt";
+      row-gap: 2px; padding: 10px 14px;
+    }
+    .row > .c-time { grid-area: time; align-self: start; }
+    .row > .c-status { grid-area: status; text-align: right; }
+    .row > .c-flight { grid-area: flight; }
+    .row > .c-from { grid-area: from; }
+    .row > .c-belt { grid-area: belt; text-align: right; }
+    .row > .c-airline { display: none; }
+    .row > .c-flight .airline { display: inline; }
+    .row > .c-flight .airline::before { content: " · "; }
+    .belt:not(:empty)::before { content: "Belt "; color: var(--muted); font-weight: 400; font-size: 12px; }
+    .status { font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header class="top">
+    <div>
+      <h1>Arrivals · Oslo Airport</h1>
+      <p class="sub">Gardermoen (OSL), now and the next 24 hours</p>
+    </div>
+    <div class="meta" id="meta" aria-live="polite">Loading…</div>
+  </header>
+
+  <label class="sr-only" for="q">Search flights</label>
+  <input type="search" id="q" placeholder="Search flight, airline or city" autocomplete="off">
+
+  <div class="board" id="board" role="table" aria-label="Arrivals">
+    <p class="empty">Loading arrivals…</p>
+  </div>
+
+  <footer>
+    <a href="https://www.avinor.no" target="_blank" rel="noopener">Flight data from Avinor</a>.
+    Times are local (Oslo). Data refreshes every few minutes.
+  </footer>
+</main>
+
+<script type="module">
+  import { REGION, dayLabel, matches, osloTime, statusLabel, upcoming } from './avinor.js';
+
+  const $ = (id) => document.getElementById(id);
+  const RELOAD_MS = 3 * 60e3;
+  const STALE_MS = 30 * 60e3;
+  let data = null;
+
+  const el = (tag, className, text) => {
+    const e = document.createElement(tag);
+    if (className) e.className = className;
+    if (text != null) e.textContent = text;
+    return e;
+  };
+  const cell = (area, ...children) => {
+    const c = el('div', `c-${area}`);
+    c.setAttribute('role', 'cell');
+    c.append(...children);
+    return c;
+  };
+
+  function headRow() {
+    const r = el('div', 'row head');
+    r.setAttribute('role', 'row');
+    for (const [t, cls] of [['Sched.'], ['Status'], ['Flight'], ['Airline'], ['From'], ['Belt', 'belt']]) {
+      const h = el('div', cls, t);
+      h.setAttribute('role', 'columnheader');
+      r.append(h);
+    }
+    return r;
+  }
+
+  function flightRow(f) {
+    const st = statusLabel(f);
+    const r = el('div', 'row');
+    r.setAttribute('role', 'row');
+    if (st.kind === 'landed') r.classList.add('done');
+    if (st.kind === 'cancelled') r.classList.add('cancelled');
+
+    const moved = st.kind !== 'landed' && f.status?.time && osloTime(f.status.time) !== osloTime(f.scheduled);
+    const time = el('span', `time${moved ? ' moved' : ''}`, osloTime(f.scheduled));
+    const from = el('div', 'ellip');
+    from.append(el('span', 'from', f.from));
+    if (REGION[f.domInt] && f.domInt !== 'D') from.append(el('span', 'tag', REGION[f.domInt]));
+    if (f.via.length) from.append(el('div', 'via ellip', `via ${f.via.join(', ')}`));
+    from.title = [f.from, f.via.length && `via ${f.via.join(', ')}`, REGION[f.domInt]].filter(Boolean).join(' · ');
+
+    const flight = el('div', 'ellip');
+    flight.append(el('span', 'flight', f.flight));
+    flight.append(el('span', 'airline', f.airline));
+
+    r.append(
+      cell('time', time),
+      cell('status', el('span', `status ${st.kind}`, st.text)),
+      cell('flight', flight),
+      cell('airline', el('div', 'airline ellip', f.airline)),
+      cell('from', from),
+      cell('belt', el('span', 'belt', f.belt ?? '')),
+    );
+    return r;
+  }
+
+  function render() {
+    if (!data) return;
+    const now = Date.now();
+    const q = $('q').value;
+    const list = upcoming(data.flights, now).filter((f) => matches(f, q));
+    const board = $('board');
+
+    if (!list.length) {
+      board.replaceChildren(el('p', 'empty', q ? `No arrivals match “${q}”.` : 'No arrivals in the next 24 hours.'));
+    } else {
+      const rows = [headRow()];
+      let day = null;
+      for (const f of list) {
+        const d = dayLabel(f.scheduled, now);
+        if (d !== day) {
+          day = d;
+          const h = el('div', 'day', d);
+          h.setAttribute('role', 'row');
+          rows.push(h);
+        }
+        rows.push(flightRow(f));
+      }
+      board.replaceChildren(...rows);
+    }
+
+    const age = now - Date.parse(data.fetchedAt);
+    const meta = $('meta');
+    meta.replaceChildren(`${list.length} arrival${list.length === 1 ? '' : 's'} · data from ${osloTime(data.fetchedAt)}`);
+    if (age > STALE_MS) meta.append(el('div', 'stale', `Data is ${Math.round(age / 60e3)} min old`));
+  }
+
+  async function load() {
+    try {
+      const res = await fetch(`arrivals.json?t=${Math.floor(Date.now() / 60e3)}`, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      data = await res.json();
+      render();
+    } catch (err) {
+      console.warn(err);
+      if (data) {
+        render();
+        $('meta').append(el('div', 'stale', 'Refresh failed; showing earlier data'));
+      } else {
+        $('board').replaceChildren(el('p', 'error', `Couldn't load arrivals. ${err.message}`));
+        $('meta').textContent = '';
+      }
+    }
+  }
+
+  $('q').addEventListener('input', render);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });
+  setInterval(() => { if (!document.hidden) load(); }, RELOAD_MS);
+  // Re-filter every minute so flights roll off the board as time passes.
+  setInterval(render, 60e3);
+  load();
+</script>
+</body>
+</html>
