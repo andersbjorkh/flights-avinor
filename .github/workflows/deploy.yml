@@ -2,8 +2,9 @@ name: Fetch arrivals and deploy
 
 on:
   schedule:
-    # GitHub runs schedules on a best-effort basis; runs may start late.
-    - cron: '*/5 * * * *'
+    # GitHub runs schedules on a best-effort basis; runs may start late or be
+    # skipped. Every 10 minutes, off the top of the hour, when load is highest.
+    - cron: '4-59/10 * * * *'
   push:
     branches: [main]
   workflow_dispatch:

@@ -19,14 +19,14 @@ All times are Oslo local time. The page reloads the data every 3 minutes, and th
 
 Avinor's feed doesn't accept requests from browsers, and Avinor asks users to cache the data rather than send every visitor to its servers. So a GitHub Actions workflow (`.github/workflows/deploy.yml`) does the fetching:
 
-1. Every 5 minutes, `scripts/fetch.mjs` downloads OSL arrivals from an hour ago to 24 hours ahead, plus Avinor's airport, airline and status names.
+1. Every 10 minutes, `scripts/fetch.mjs` downloads OSL arrivals from an hour ago to 24 hours ahead, plus Avinor's airport, airline and status names.
 2. It converts them to `arrivals.json`, with names already resolved.
 3. It deploys that file with the page to GitHub Pages. The browser only ever reads `arrivals.json`.
 
 If a fetch fails or returns no flights, the workflow stops, and the last good version stays online.
 
 Two caveats:
-- GitHub starts scheduled workflows on a best-effort basis. Runs usually happen every 5 to 15 minutes but can be later at busy times.
+- GitHub starts scheduled workflows on a best-effort basis. Runs are due every 10 minutes but can start late, or be skipped, at busy times.
 - GitHub disables scheduled workflows in repositories that have had no activity for 60 days. Re-enable the workflow from the **Actions** tab.
 
 ## Data source
