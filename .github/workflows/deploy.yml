@@ -14,9 +14,12 @@ permissions:
   pages: write
   id-token: write
 
+# Each run fetches fresh data, so a newer run supersedes an older one. Cancel
+# in-progress runs so one that never gets a runner (timeout-minutes only
+# counts once a runner picks the job up) can't hold the group indefinitely.
 concurrency:
   group: pages
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   deploy:
